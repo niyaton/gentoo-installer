@@ -133,14 +133,20 @@ def mount_file_systems():
         run("mkdir boot")
         run("mount /dev/sda1 boot")
 
-def base():
-    make_file_systems()
-    mount_file_systems()
-    
+def upload_stage3_and_portage():
     stage3_path = download_latest_stage3()
     portage_path = download_latest_portage()
     put(stage3_path, env.chroot)
     put(portage_path, env.chroot)
+
+    return (stage3_path, portage_path)
+    
+
+def base():
+    make_file_systems()
+    mount_file_systems()
+    stage3_path, portage_path = upload_stage3_and_portage()
+
     with cd(env.chroot):
         stage3_file_name = stage3_path.split('/')[-1]
         run('tar xpf "%s"' % (stage3_file_name))
