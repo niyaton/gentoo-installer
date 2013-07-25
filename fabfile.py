@@ -107,7 +107,8 @@ def setting(build_arch="amd64", build_proc="amd64"):
     # the public key for vagrants ssh
     remote_env["vagrant_ssh_key_url"] = "https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub"
 
-def base():
+
+def make_file_systems():
     sgdisk_opts_format = '-n %(id)d:0:%(amount)s -t %(id)d:%(fid)s -c %(id)d:"%(name)s"'
     sgdisk_options = []
     sgdisk_options.append({'id' : 1, "amount" : "+128M", "fid" : "8300", "name" : "linux-boot"})
@@ -118,11 +119,16 @@ def base():
     sgdisk_option = ' '.join([ sgdisk_opts_format % i for i in sgdisk_options])
     sgdisk_option += ' -p /dev/sda'
     run("sgdisk %s" % (sgdisk_option))
+
     run("mkswap /dev/sda3")
-    run("swapon /dev/sda3")
-    
     run("mkfs.ext2 /dev/sda1")
     run("mkfs.ext4 /dev/sda4")
+
+def base():
+    make_file_systems()
+
+    run("swapon /dev/sda3")
+    
 
     run("mount /dev/sda4 %s" % (env.chroot))
 
