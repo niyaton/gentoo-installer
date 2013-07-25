@@ -4,6 +4,7 @@ from urllib2 import urlopen
 import os
 import hashlib
 
+# chroot directory for the installation
 env.chroot = "/mnt/gentoo"
 
 def hello():
@@ -96,8 +97,6 @@ def setting(build_arch="amd64", build_proc="amd64"):
     remote_env["timezone"] = "UTC"
     # locale
     remote_env["locale"] = "en_US.utf8"
-    # chroot directory for the installation
-    remote_env["chroot"] = "/mnt/gentoo"
     # number of cpus in the host system (to speed up make and for kernel config)
     nr_cpus = run("cat /proc/cpuinfo | grep processor | wc -l")
     print("number of cpu is %s" % (nr_cpus))
