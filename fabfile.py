@@ -124,23 +124,24 @@ def make_file_systems():
     run("mkfs.ext2 /dev/sda1")
     run("mkfs.ext4 /dev/sda4")
 
-def base():
-    make_file_systems()
 
+def mount_file_systems():
     run("swapon /dev/sda3")
-    
-
     run("mount /dev/sda4 %s" % (env.chroot))
 
+    with cd(env.chroot):
+        run("mkdir boot")
+        run("mount /dev/sda1 boot")
+
+def base():
+    make_file_systems()
+    mount_file_systems()
     
     stage3_path = download_latest_stage3()
     portage_path = download_latest_portage()
     put(stage3_path, env.chroot)
     put(portage_path, env.chroot)
     with cd(env.chroot):
-        run("mkdir boot")
-        run("mount /dev/sda1 boot")
-
         stage3_file_name = stage3_path.split('/')[-1]
         run('tar xpf "%s"' % (stage3_file_name))
         run('rm "%s"' % (stage3_file_name))
