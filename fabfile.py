@@ -195,7 +195,6 @@ def setting_mounts():
     fstab_file = 'files/fstab'
     put(fstab_file, env.chroot + '/etc/fstab')
 
-
 def chroot2():
     make_conf_file = 'files/make.conf'
     make_conf_env = get_make_conf_env()
