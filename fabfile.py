@@ -31,8 +31,8 @@ def download_latest_portage(url="http://ftp.jaist.ac.jp/pub/Linux/Gentoo/snapsho
     portage_latest_path = "downloads/portage.tar.bz2"
     if not os.path.exists(portage_latest_path):
         r = urlopen(url)
-        w = open(portage_latest_path, 'wb')
-        w.write(r.read())
+        with open(portage_latest_path, 'wb') as w:
+            w.write(r.read())
 
     if not check_portage_md5sum(url, portage_latest_path):
         raise Exception
