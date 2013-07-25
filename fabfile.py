@@ -64,30 +64,25 @@ def check_stage3_md5sum(stage3_latest_url, stage3_path):
     print("digest of %s is %s" % (stage3_path, h.hexdigest()))
     return digest == h.hexdigest()
 
+
+def get_digest_from_url(base_url, digest_type):
+    url = base_url + digest_type
+    file_name = base_url.split("/")[-1]
+    r = urlopen(url)
+    for line in r.readlines():
+        if line.startswith('#'):
+            continue
+        line = line.rstrip()
+        digest, name = line.split('  ')
+        if name == file_name:
+            return digest
+
 def get_portage_md5sum(stage3_latest_url):
-    url = stage3_latest_url + '.md5sum'
-    stage3_file_name = stage3_latest_url.split("/")[-1]
-    r = urlopen(url)
-    for line in r.readlines():
-        if line.startswith('#'):
-            continue
-        line = line.rstrip()
-        digest, file_name = line.split('  ')
-        if file_name == stage3_file_name:
-            return digest
-
+    return get_digest_from_url(stage3_latest_url, '.md5sum')
+        
 def get_stage3_digest(stage3_latest_url):
-    url = stage3_latest_url + '.DIGESTS'
-    stage3_file_name = stage3_latest_url.split("/")[-1]
-    r = urlopen(url)
-    for line in r.readlines():
-        if line.startswith('#'):
-            continue
-        line = line.rstrip()
-        digest, file_name = line.split('  ')
-        if file_name == stage3_file_name:
-            return digest
-
+    return get_digest_from_url(stage3_latest_url, '.DIGESTS')
+    
 def setting(build_arch="amd64", build_proc="amd64"):
     stage3_latest_url = get_latest_stage3(build_arch, build_proc)
     stage3_file_name = stage3_latest_url.split("/")[-1]
