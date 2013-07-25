@@ -210,10 +210,7 @@ def chroot3():
     # locale
     remote_env["locale"] = "en_US.utf8"
     run('echo LANG="%s" > %s/etc/env.d/02locale' % (remote_env["locale"], env.chroot))
-    #commands.append('env-update')
-    #commands.append('/bin/bash -c "env-update && source /etc/profile && emerge-webrsync"')
     commands.append('/bin/bash -c "env-update && source /etc/profile && emerge --sync --quiet"')
-    #commands.append('emerge-webrsync')
     
     map(exec_with_chroot, commands)
 
