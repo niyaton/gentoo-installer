@@ -50,8 +50,8 @@ def download_latest_stage3(build_arch="amd64", build_proc="amd64"):
     stage3_path = "downloads/stage3.tar.bz2"
     if not os.path.exists(stage3_path):
         r = urlopen(stage3_latest_url)
-        w = open(stage3_path, 'wb')
-        w.write(r.read())
+        with open(stage3_path, 'wb') as w:
+            w.write(r.read())
 
     if not check_stage3_md5sum(stage3_latest_url, stage3_path):
         raise Exception
