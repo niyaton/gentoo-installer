@@ -116,9 +116,6 @@ def setting(build_arch="amd64", build_proc="amd64"):
     # the public key for vagrants ssh
     remote_env["vagrant_ssh_key_url"] = "https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub"
 
-    with shell_env(**remote_env):
-        run("env")
-
 def base():
     sgdisk_opts_format = '-n %(id)d:0:%(amount)s -t %(id)d:%(fid)s -c %(id)d:"%(name)s"'
     sgdisk_options = []
