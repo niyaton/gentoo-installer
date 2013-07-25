@@ -163,10 +163,11 @@ def base():
         run('chroot "%s" env-update' % (env.chroot))
                 
         chroot2()
-        chroot3()
 
     setting_network()
     setting_mounts()
+    set_timezone()
+    set_locale()
 
 def setting_network():
     command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
@@ -212,10 +213,6 @@ def set_locale():
     
     exec_with_chroot(command)
 
-def chroot3():
-    set_timezone()
-    set_locale()
-    
 def kernel():
     package_use_file = 'files/package.use'
     put(package_use_file, env.chroot + '/etc/portage/package.use')
