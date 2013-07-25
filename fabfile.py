@@ -135,13 +135,6 @@ def base():
         run("mkdir boot")
         run("mount /dev/sda1 boot")
 
-        #stage3_latest_url = get_latest_stage3("amd64", "amd64")
-        #stage3_file_name = stage3_latest_url.split("/")[-1]
-
-        #run('wget -nv --tries=5 "%s"' % (stage3_latest_url))
-        #run('tar xpf "%s"' % (stage3_file_name))
-        #run('rm "%s"' % (stage3_file_name))
-        
         stage3_file_name = stage3_path.split('/')[-1]
         run('tar xpf "%s"' % (stage3_file_name))
         run('rm "%s"' % (stage3_file_name))
