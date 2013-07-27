@@ -160,7 +160,7 @@ def build_gentoo():
     install_grub()
     cleanup()
     zerodisk()
-    #reboot()
+    run('reboot')
 
 def setting_network():
     put('files/net', env.chroot + '/etc/conf.d/net')
@@ -342,5 +342,3 @@ def zerodisk():
     empty_file_path = env.chroot + '/EMPTY'
     run('dd if=/dev/zero of=%s bs=1M || true' % (empty_file_path))
     run('rm %s' % (empty_file_path))
-    #reboot()
-    run('reboot')
