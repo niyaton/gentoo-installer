@@ -1,4 +1,4 @@
-from fabric.api import run, env, cd, put, reboot, prefix, shell_env
+from fabric.api import run, env, cd, put, prefix, shell_env
 from contextlib import closing
 from fabric.contrib.files import upload_template
 from urllib2 import urlopen
