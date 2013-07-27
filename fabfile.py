@@ -163,11 +163,10 @@ def build_gentoo():
     #reboot()
 
 def setting_network():
-    command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
-    exec_with_chroot(command)
     net_file = 'files/net'
     put(net_file, env.chroot + '/etc/conf.d/net')
     commands = []
+    commands.append('ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules')
     commands.append('ln -s net.lo /etc/init.d/net.eth0')
     commands.append('rc-update add net.eth0 default')
     commands.append('rc-update add sshd default')
