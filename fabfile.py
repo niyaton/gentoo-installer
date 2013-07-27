@@ -326,7 +326,6 @@ def setting_vagrant():
     with cd(env.chroot + '/etc/ssh'):
         put('files/sshd_config', 'sshd_config')
 
-
 def cleanup():
     exec_with_chroot('eselect news read all')
 
@@ -339,4 +338,3 @@ def zerodisk():
         empty_file_path = env.chroot + empty_file_path
         run('dd if=/dev/zero of=%s bs=1M || true' % (empty_file_path))
         run('rm %s' % (empty_file_path))
-
