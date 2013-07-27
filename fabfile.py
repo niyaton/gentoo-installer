@@ -211,11 +211,11 @@ def gen_kernel():
     remote_env = dict()
     remote_env["kernel_version"] = "3.8.13"
 
-    emerge('=sys-kernel/gentoo-sources-%s"' % (remote_env['kernel_version']))
+    emerge('=sys-kernel/gentoo-sources-%s' % (remote_env['kernel_version']))
 
     put('files/.config', env.chroot + '/usr/src/linux/.config')
 
-    command = 'cd /usr/src/linux && make && make modules_install && make install"'
+    command = 'cd /usr/src/linux && make && make modules_install && make install'
     exec_with_chroot_and_new_env(command)
 
 def install_grub():
