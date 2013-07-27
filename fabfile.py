@@ -150,7 +150,7 @@ def build_gentoo():
     install_cron()
     install_syslog()
     install_nfs()
-    grub()
+    install_grub()
     cleanup()
     zerodisk()
     #reboot()
@@ -219,7 +219,7 @@ def kernel():
     command = '/bin/bash -c "env-update && source /etc/profile && cd /usr/src/linux && make && make modules_install && make install"'
     run('chroot "%s" %s' % (env.chroot, command))
 
-def grub():
+def install_grub():
     commands = []
     commands.append('/bin/bash -c "env-update && source /etc/profile && emerge grub"')
     commands.append('sed -i "s/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=1/g" /etc/default/grub')
