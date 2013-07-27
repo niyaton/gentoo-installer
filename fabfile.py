@@ -119,6 +119,10 @@ def upload_and_decompress_stage3_and_portage():
 def exec_with_chroot(command):
     run('chroot "%s" %s' % (env.chroot, command))
 
+def exec_with_chroot_and_new_env(command):
+    exec_command = ' && '.join(['env-update', 'source /etc/profile', command])
+    exec_with_chroot('/bin/bash -c "%s"' % (exec_command))
+
 def prepare_chroot():
     run('mount -t proc none "%s/proc"' % (env.chroot))
     run('mount --rbind /dev "%s/dev"' % (env.chroot))
@@ -188,6 +192,7 @@ def setting_portage():
     upload_template(make_conf_file, env.chroot + '/etc/portage/make.conf', make_conf_env, backup=False)
     package_keywords = 'files/package.keywords'
     put(package_keywords, env.chroot + '/etc/portage/package.keywords')
+    exec_with_chroot_and_new_env('emerge --sync --quiet')
 
 def set_timezone():
     # timezone (as a subdirectory of /usr/share/zoneinfo)
@@ -198,9 +203,6 @@ def set_timezone():
 def set_locale():
     locale = "en_US.utf8"
     run('echo LANG="%s" > %s/etc/env.d/02locale' % (locale, env.chroot))
-    command = '/bin/bash -c "env-update && source /etc/profile && emerge --sync --quiet"'
-    
-    exec_with_chroot(command)
 
 def kernel():
     package_use_file = 'files/package.use'
@@ -215,15 +217,15 @@ def kernel():
     kernel_config = 'files/.config'
     put(kernel_config, env.chroot + '/usr/src/linux/.config')
 
-    command = '/bin/bash -c "env-update && source /etc/profile && cd /usr/src/linux && make && make modules_install && make install"'
-    run('chroot "%s" %s' % (env.chroot, command))
+    command = 'cd /usr/src/linux && make && make modules_install && make install"'
+    exec_with_chroot_and_new_env(command)
 
 def install_grub():
     emerge('grub')
+    exec_with_chroot_and_new_env('grep -v rootfs /proc/mounts > /etc/mtab')
+
     commands = []
-    #commands.append('/bin/bash -c "env-update && source /etc/profile && emerge grub"')
     commands.append('sed -i "s/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=1/g" /etc/default/grub')
-    commands.append('/bin/bash -c "env-update && source /etc/profile && grep -v rootfs /proc/mounts > /etc/mtab"')
     commands.append('mkdir /boot/grub2')
     commands.append('grub2-mkconfig -o /boot/grub2/grub.cfg')
     commands.append('grub2-install --no-floppy /dev/sda')
@@ -237,16 +239,8 @@ def test_mount():
     run('mount --rbind /dev "%s/dev"' % (env.chroot))
 
 def emerge(arg):
-    base = '/bin/bash -c "%s"'
-    bash_commands = []
-    bash_commands.append('env-update')
-    bash_commands.append('source /etc/profile')
-    bash_commands.append('emerge %s' % (arg))
-    bash_command = ' && '.join(bash_commands)
-
-    command = base % (bash_command)
-    exec_with_chroot(command)
-
+    exec_with_chroot_and_new_env('emerge %s' % (arg))
+    
 def install_ruby():
     emerge('--autounmask-write ruby:1.9')
     exec_with_chroot('eselect ruby set ruby19')
@@ -286,9 +280,8 @@ def install_vmware_tools():
         vm_tool_file = 'VMwareTools-*.tar.gz'
         tmp_dir = 'tmp'
         run('tar xzf %s -C %s' % ('/'.join((mount_path, vm_tool_file)), tmp_dir))
-        exec_command = '%s/vmware-tools-distrib/vmware-install.pl -d' % (tmp_dir)
-        command = '/bin/bash -c "env-update && source /etc/profile && %s"'
-        exec_with_chroot(command % (exec_command))
+        command = '%s/vmware-tools-distrib/vmware-install.pl -d' % (tmp_dir)
+        exec_with_chroot_and_new_env(command)
         run('umount %s' % (mount_path))
         put('files/vmware-tools', 'etc/init.d/vmware-tools')
         run('chmod +x etc/init.d/vmware-tools')
