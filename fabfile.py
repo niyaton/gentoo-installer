@@ -210,8 +210,7 @@ def kernel():
     remote_env = dict()
     remote_env["kernel_version"] = "3.8.13"
 
-    command = '/bin/bash -c "env-update && source /etc/profile && emerge =sys-kernel/gentoo-sources-%s"' % (remote_env['kernel_version'])
-    run('chroot "%s" %s' % (env.chroot, command))
+    emerge('=sys-kernel/gentoo-sources-%s"' % (remote_env['kernel_version']))
 
     kernel_config = 'files/.config'
     put(kernel_config, env.chroot + '/usr/src/linux/.config')
@@ -220,8 +219,9 @@ def kernel():
     run('chroot "%s" %s' % (env.chroot, command))
 
 def install_grub():
+    emerge('grub')
     commands = []
-    commands.append('/bin/bash -c "env-update && source /etc/profile && emerge grub"')
+    #commands.append('/bin/bash -c "env-update && source /etc/profile && emerge grub"')
     commands.append('sed -i "s/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=1/g" /etc/default/grub')
     commands.append('/bin/bash -c "env-update && source /etc/profile && grep -v rootfs /proc/mounts > /etc/mtab"')
     commands.append('mkdir /boot/grub2')
