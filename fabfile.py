@@ -123,6 +123,9 @@ def exec_with_chroot_and_new_env(command):
     exec_command = ' && '.join(['env-update', 'source /etc/profile', command])
     exec_with_chroot('/bin/bash -c "%s"' % (exec_command))
 
+def emerge(arg):
+    exec_with_chroot_and_new_env('emerge %s' % (arg))
+
 def prepare_chroot():
     run('mount -t proc none "%s/proc"' % (env.chroot))
     run('mount --rbind /dev "%s/dev"' % (env.chroot))
@@ -238,9 +241,6 @@ def test_mount():
     run('mount -t proc none "%s/proc"' % (env.chroot))
     run('mount --rbind /dev "%s/dev"' % (env.chroot))
 
-def emerge(arg):
-    exec_with_chroot_and_new_env('emerge %s' % (arg))
-    
 def install_ruby():
     emerge('--autounmask-write ruby:1.9')
     exec_with_chroot('eselect ruby set ruby19')
