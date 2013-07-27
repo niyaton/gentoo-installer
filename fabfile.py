@@ -163,8 +163,7 @@ def build_gentoo():
     #reboot()
 
 def setting_network():
-    net_file = 'files/net'
-    put(net_file, env.chroot + '/etc/conf.d/net')
+    put('files/net', env.chroot + '/etc/conf.d/net')
     commands = []
     commands.append('ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules')
     commands.append('ln -s net.lo /etc/init.d/net.eth0')
@@ -185,8 +184,7 @@ def get_make_conf_env():
     return make_conf_env
  
 def setting_mounts():
-    fstab_file = 'files/fstab'
-    put(fstab_file, env.chroot + '/etc/fstab')
+    put('files/fstab', env.chroot + '/etc/fstab')
 
 def setting_portage():
     make_conf_file = 'files/make.conf'
@@ -207,8 +205,7 @@ def setting_locale():
     run('echo LANG="%s" > %s/etc/env.d/02locale' % (locale, env.chroot))
 
 def kernel():
-    package_use_file = 'files/package.use'
-    put(package_use_file, env.chroot + '/etc/portage/package.use')
+    put('files/package.use', env.chroot + '/etc/portage/package.use')
 
     # kernel version to use
     remote_env = dict()
@@ -216,8 +213,7 @@ def kernel():
 
     emerge('=sys-kernel/gentoo-sources-%s"' % (remote_env['kernel_version']))
 
-    kernel_config = 'files/.config'
-    put(kernel_config, env.chroot + '/usr/src/linux/.config')
+    put('files/.config', env.chroot + '/usr/src/linux/.config')
 
     command = 'cd /usr/src/linux && make && make modules_install && make install"'
     exec_with_chroot_and_new_env(command)
