@@ -76,9 +76,6 @@ def get_digest_from_url(base_url, digest_type):
             if name == file_name:
                 return digest
    
-def setting():
-    pass
-
 def make_file_systems():
     sgdisk_opts_format = '-n %(id)d:0:%(amount)s -t %(id)d:%(fid)s -c %(id)d:"%(name)s"'
     sgdisk_options = []
@@ -129,7 +126,6 @@ def prepare_chroot():
     run('cp /etc/resolv.conf "%s/etc/"' % (env.chroot))
     exec_with_chroot('env-update')
 
-
 def build_gentoo():
     make_file_systems()
     mount_file_systems()
@@ -158,7 +154,6 @@ def build_gentoo():
     cleanup()
     zerodisk()
     #reboot()
-
 
 def setting_network():
     command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
@@ -193,7 +188,6 @@ def setting_portage():
     upload_template(make_conf_file, env.chroot + '/etc/portage/make.conf', make_conf_env, backup=False)
     package_keywords = 'files/package.keywords'
     put(package_keywords, env.chroot + '/etc/portage/package.keywords')
-
 
 def set_timezone():
     # timezone (as a subdirectory of /usr/share/zoneinfo)
@@ -250,7 +244,6 @@ def emerge(arg):
     bash_commands.append('emerge %s' % (arg))
     bash_command = ' && '.join(bash_commands)
 
-    #command = ' '.join((base, bash_command))
     command = base % (bash_command)
     exec_with_chroot(command)
 
@@ -269,7 +262,6 @@ def install_cron():
     emerge('sys-process/vixie-cron')
     exec_with_chroot('rc-update add vixie-cron default')
 
-
 def install_nfs():
     emerge('net-fs/nfs-utils')
     base = '/bin/bash -c "%s"'
@@ -280,7 +272,6 @@ def install_nfs():
     bash_command = ' && '.join(bash_commands)
     command = base % (bash_command)
     exec_with_chroot(command)
-    #emerge(' net-fs/autofs')
 
 def install_vmware_tools():
     
@@ -301,7 +292,6 @@ def install_vmware_tools():
         command = '/bin/bash -c "env-update && source /etc/profile && %s"'
         exec_with_chroot(command % (exec_command))
         run('umount %s' % (mount_path))
-        #exec_with_chroot('/bin/bash -c "cd /etc/init.d && ln -s /etc/rc.d/vmware-tools"')
         put('files/vmware-tools', 'etc/init.d/vmware-tools')
         run('chmod +x etc/init.d/vmware-tools')
 
@@ -354,10 +344,8 @@ def setting_vagrant():
 def cleanup():
     exec_with_chroot('eselect news read all')
 
-    #exec_with_chroot('rm /tmp/*')
     run('rm %s/tmp/*' % (env.chroot))
     run('rm -rf %s/var/log/*' % (env.chroot))
-    #exec_with_chroot('rm -rf /var/log/*')
     exec_with_chroot('rm -rf /root/.gem')
 
 def zerodisk():
