@@ -274,3 +274,6 @@ def install_nfs():
     command = base % (bash_command)
     exec_with_chroot(command)
     #emerge(' net-fs/autofs')
+
+def install_vmware_tools():
+    emerge('--autounmask-write app-emulation/vmware-tools')
