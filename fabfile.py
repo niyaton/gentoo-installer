@@ -156,7 +156,7 @@ def build_gentoo():
     grub()
     cleanup()
     zerodisk()
-    reboot()
+    #reboot()
 
 
 def setting_network():
