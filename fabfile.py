@@ -1,4 +1,5 @@
 from fabric.api import run, shell_env, env, cd, put, open_shell
+from contextlib import closing
 from fabric.contrib.files import upload_template
 from urllib2 import urlopen
 import os
@@ -42,9 +43,9 @@ def download_latest_stage3(build_arch="amd64", build_proc="amd64"):
 
 def download_base_file(url, local_path, hash_algorithm):
     if not os.path.exists(local_path):
-        r = urlopen(url)
-        with open(local_path, 'wb') as w:
-            w.write(r.read())
+        with closing(urlopen(url)) as r:
+            with open(local_path, 'wb') as w:
+                w.write(r.read())
 
     if not check_digest(url, local_path, hash_algorithm):
         raise Exception
@@ -65,14 +66,14 @@ def check_digest(url, local_path, hash_algorithm):
 def get_digest_from_url(base_url, digest_type):
     url = base_url + digest_type
     file_name = base_url.split("/")[-1]
-    r = urlopen(url)
-    for line in r.readlines():
-        if line.startswith('#'):
-            continue
-        line = line.rstrip()
-        digest, name = line.split('  ')
-        if name == file_name:
-            return digest
+    with closing(urlopen(url)) as r:
+        for line in r.readlines():
+            if line.startswith('#'):
+                continue
+            line = line.rstrip()
+            digest, name = line.split('  ')
+            if name == file_name:
+                return digest
    
 def setting():
     remote_env = dict()
