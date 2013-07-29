@@ -1,4 +1,4 @@
-from fabric.api import run, env, cd, put, reboot
+from fabric.api import run, env, cd, put, reboot, prefix, shell_env
 from contextlib import closing
 from fabric.contrib.files import upload_template
 from urllib2 import urlopen
@@ -251,6 +251,10 @@ def install_ruby():
     emerge('--autounmask-write ruby:1.9')
     exec_with_chroot('eselect ruby set ruby19')
 
+def test_chroot():
+    with prefix('chroot %s' % (env.chroot)):
+        run('pwd')
+
 def install_chef():
     exec_with_chroot('gem install chef --no-rdoc --no-ri')
 
@@ -264,14 +268,8 @@ def install_cron():
 
 def install_nfs():
     emerge('net-fs/nfs-utils')
-    base = '/bin/bash -c "%s"'
-    bash_commands = []
-    bash_commands.append('env-update')
-    bash_commands.append('source /etc/profile')
-    bash_commands.append('FEATURES=\'-sandbox\' emerge %s' % ('net-fs/autofs'))
-    bash_command = ' && '.join(bash_commands)
-    command = base % (bash_command)
-    exec_with_chroot(command)
+    with shell_env(FEATURES='-sandbox'):
+        emerge('net-fs/autofs')
 
 def install_vmware_tools():
     
@@ -358,4 +356,3 @@ def zerodisk():
     run('rm %s' % (empty_file_path))
     #reboot()
     run('reboot')
-
