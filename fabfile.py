@@ -335,10 +335,8 @@ def cleanup():
     exec_with_chroot('rm -rf /root/.gem')
 
 def zerodisk():
-    empty_file_path = env.chroot + '/boot/EMPTY'
-    run('dd if=/dev/zero of=%s bs=1M || true' % (empty_file_path))
-    run('rm %s' % (empty_file_path))
-    
-    empty_file_path = env.chroot + '/EMPTY'
-    run('dd if=/dev/zero of=%s bs=1M || true' % (empty_file_path))
-    run('rm %s' % (empty_file_path))
+    for empty_file_path in ['/boot/EMPTY', '/EMPTY']:
+        empty_file_path = env.chroot + empty_file_path
+        run('dd if=/dev/zero of=%s bs=1M || true' % (empty_file_path))
+        run('rm %s' % (empty_file_path))
+
