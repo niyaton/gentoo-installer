@@ -64,7 +64,6 @@ def check_stage3_md5sum(stage3_latest_url, stage3_path):
     print("digest of %s is %s" % (stage3_path, h.hexdigest()))
     return digest == h.hexdigest()
 
-
 def get_digest_from_url(base_url, digest_type):
     url = base_url + digest_type
     file_name = base_url.split("/")[-1]
