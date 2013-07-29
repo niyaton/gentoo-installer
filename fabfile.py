@@ -161,7 +161,6 @@ def base():
         run('cp /etc/resolv.conf "%s/etc/"' % (env.chroot))
         run('date -u > "%s/etc/vagrant_box_build_time"' % (env.chroot))
         run('chroot "%s" env-update' % (env.chroot))
-
                 
         chroot2()
         chroot3()
