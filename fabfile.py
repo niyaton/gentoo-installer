@@ -112,14 +112,14 @@ def upload_and_decompress_stage3_and_portage():
     stage3_path = download_latest_stage3()
     portage_path = download_latest_portage()
     with cd(env.chroot):
-        put(stage3_path)
-        put(portage_path)
-
         stage3_file_name = stage3_path.split('/')[-1]
+        put(stage3_path, stage3_file_name)
+        portage_file_name = portage_path.split('/')[-1]
+        put(portage_path, portage_file_name)
+
         run('tar xpf "%s"' % (stage3_file_name))
         run('rm "%s"' % (stage3_file_name))
 
-        portage_file_name = portage_path.split('/')[-1]
         run('tar xjf %s -C %s' % (portage_file_name, "usr"))
         run('rm "%s"' % (portage_file_name))
 
