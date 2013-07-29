@@ -77,11 +77,7 @@ def get_digest_from_url(base_url, digest_type):
                 return digest
    
 def setting():
-    remote_env = dict()
-    remote_env["password_root"] = "vagrant"
-    remote_env["password_vagrant"] = "vagrant"
-    # the public key for vagrants ssh
-    remote_env["vagrant_ssh_key_url"] = "https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub"
+    pass
 
 def make_file_systems():
     sgdisk_opts_format = '-n %(id)d:0:%(amount)s -t %(id)d:%(fid)s -c %(id)d:"%(name)s"'
@@ -277,3 +273,46 @@ def install_nfs():
 
 def install_vmware_tools():
     emerge('--autounmask-write app-emulation/vmware-tools')
+
+def setting_vagrant():
+    remote_env = dict()
+    remote_env["password_root"] = "vagrant"
+    remote_env["password_vagrant"] = "vagrant"
+    # the public key for vagrants ssh
+    remote_env["vagrant_ssh_key_url"] = "https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub"
+
+    exec_with_chroot('mkdir -p /home/vagrant/.ssh')
+    exec_with_chroot('chmod 700 /home/vagrant/.ssh')
+    exec_with_chroot('wget --no-check-certificate "%s" -O "/home/vagrant/.ssh/authorized_keys"' % (remote_env["vagrant_ssh_key_url"]))
+    exec_with_chroot('chmod 600 /home/vagrant/.ssh/authorized_keys')
+
+    #cp -f /root/.vbox_version "$chroot/home/vagrant/.vbox_version"
+
+    # for passwordless logins
+    exec_with_chroot('mkdir -p /root/.ssh')
+    #cat /tmp/ssh-root.pub >> "$chroot/root/.ssh/authorized_keys"
+
+    # add vagrant user
+    exec_with_chroot('groupadd -r vagrant')
+    exec_with_chroot('useradd -m -r vagrant -g vagrant -G wheel -c "added by vagrant"')
+
+    # set passwords (for after reboot)
+    run('echo %s > %s' % (remote_env["password_root"], env.chroot + '/tmp/root-password'))
+    run('echo %s >> %s' % (remote_env["password_root"], env.chroot + '/tmp/root-password'))
+
+    run('echo %s > %s' % (remote_env["password_vagrant"], env.chroot + '/tmp/vagrant-password'))
+    run('echo %s >> %s' % (remote_env["password_vagrant"], env.chroot + '/tmp/vagrant-password'))
+
+    exec_with_chroot('/bin/bash -c "passwd < %s"' % ('/tmp/root-password'))
+    exec_with_chroot('/bin/bash -c "passwd vagrant < %s"' % ('/tmp/vagrant-password'))
+
+    exec_with_chroot('chown -R vagrant /home/vagrant')
+
+    emerge('app-admin/sudo')
+
+    run('echo "sshd:ALL" > %s' % (env.chroot + '/etc/hosts.allow'))
+    run('echo "ALL:ALL" > %s' % (env.chroot + '/etc/hosts.deny'))
+    run('echo "vagrant ALL=(ALL) NOPASSWD: ALL" >> %s' % (env.chroot + '/etc/sudoers'))
+
+    with cd(env.chroot + '/etc/ssh'):
+        put('files/sshd_config', 'sshd_config')
