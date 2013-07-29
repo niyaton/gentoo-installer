@@ -253,3 +253,7 @@ def install_ruby():
 
 def install_chef():
     exec_with_chroot('gem install chef --no-rdoc --no-ri')
+
+def install_syslog():
+    emerge('app-admin/rsyslog')
+    exec_with_chroot('rc-update add rsyslog default')
