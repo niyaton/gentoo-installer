@@ -28,7 +28,7 @@ def get_latest_stage3(build_arch, build_proc):
 def download_latest_portage(url="http://ftp.jaist.ac.jp/pub/Linux/Gentoo/snapshots/portage-latest.tar.bz2"):
     portage_latest_path = "downloads/portage.tar.bz2"
 
-    download_base_file(url, portage_latest_path)
+    download_base_file(url, portage_latest_path, hashlib.md5)
 
     return portage_latest_path
 
@@ -36,19 +36,18 @@ def download_latest_stage3(build_arch="amd64", build_proc="amd64"):
     stage3_latest_url = get_latest_stage3(build_arch, build_proc)
     stage3_path = "downloads/stage3.tar.bz2"
 
-    download_base_file(stage3_latest_url, stage3_path)
+    download_base_file(stage3_latest_url, stage3_path, hashlib.sha512)
 
     return stage3_path
 
-def download_base_file(url, local_path):
+def download_base_file(url, local_path, hash_algorithm):
     if not os.path.exists(local_path):
         r = urlopen(url)
         with open(local_path, 'wb') as w:
             w.write(r.read())
 
-    if not check_digest(url, local_path, hashlib.sha512):
+    if not check_digest(url, local_path, hash_algorithm):
         raise Exception
-
 
 def check_digest(url, local_path, hash_algorithm):
     if hash_algorithm == hashlib.md5:
