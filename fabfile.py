@@ -140,11 +140,11 @@ def build_gentoo():
     with cd(env.chroot):
         run('date -u > "%s/etc/vagrant_box_build_time"' % (env.chroot))
 
-    setting_portage()
     setting_network()
     setting_mounts()
-    set_timezone()
-    set_locale()
+    setting_timezone()
+    setting_locale()
+    setting_portage()
 
     kernel()
     setting_vagrant()
@@ -194,13 +194,13 @@ def setting_portage():
     put(package_keywords, env.chroot + '/etc/portage/package.keywords')
     exec_with_chroot_and_new_env('emerge --sync --quiet')
 
-def set_timezone():
+def setting_timezone():
     # timezone (as a subdirectory of /usr/share/zoneinfo)
     timezone = "Japan"
     command = 'ln -sf /usr/share/zoneinfo/%s /etc/localtime' % (timezone)
     exec_with_chroot(command)
 
-def set_locale():
+def setting_locale():
     locale = "en_US.utf8"
     run('echo LANG="%s" > %s/etc/env.d/02locale' % (locale, env.chroot))
 
