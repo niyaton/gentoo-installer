@@ -38,13 +38,6 @@ def download_latest_portage(url="http://ftp.jaist.ac.jp/pub/Linux/Gentoo/snapsho
         raise Exception
     return portage_latest_path
 
-def check_portage_md5sum(url, portage_latest_path):
-    digest = get_portage_md5sum(url)
-    print("digest of latest portage is %s" % (digest))
-    h = hashlib.md5(open(portage_latest_path, 'rb').read())
-    print("digest of %s is %s" % (portage_latest_path, h.hexdigest()))
-    return digest == h.hexdigest()
-
 def download_latest_stage3(build_arch="amd64", build_proc="amd64"):
     stage3_latest_url = get_latest_stage3(build_arch, build_proc)
     stage3_path = "downloads/stage3.tar.bz2"
@@ -56,6 +49,13 @@ def download_latest_stage3(build_arch="amd64", build_proc="amd64"):
     if not check_stage3_md5sum(stage3_latest_url, stage3_path):
         raise Exception
     return stage3_path
+
+def check_portage_md5sum(url, portage_latest_path):
+    digest = get_portage_md5sum(url)
+    print("digest of latest portage is %s" % (digest))
+    h = hashlib.md5(open(portage_latest_path, 'rb').read())
+    print("digest of %s is %s" % (portage_latest_path, h.hexdigest()))
+    return digest == h.hexdigest()
 
 def check_stage3_md5sum(stage3_latest_url, stage3_path):
     digest = get_stage3_digest(stage3_latest_url)
