@@ -257,3 +257,7 @@ def install_chef():
 def install_syslog():
     emerge('app-admin/rsyslog')
     exec_with_chroot('rc-update add rsyslog default')
+
+def install_cron():
+    emerge('sys-process/vixie-cron')
+    exec_with_chroot('rc-update add vixie-cron default')
