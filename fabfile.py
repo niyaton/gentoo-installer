@@ -4,10 +4,8 @@ from urllib2 import urlopen
 import os
 import hashlib
 
+# chroot directory for the installation
 env.chroot = "/mnt/gentoo"
-
-def hello():
-    print("Hello World!")
 
 def get_latest_stage3(build_arch, build_proc):
     # stage 3 filename and full url
@@ -34,7 +32,7 @@ def download_latest_portage(url="http://ftp.jaist.ac.jp/pub/Linux/Gentoo/snapsho
         with open(portage_latest_path, 'wb') as w:
             w.write(r.read())
 
-    if not check_portage_md5sum(url, portage_latest_path):
+    if not check_digest(url, portage_latest_path, hashlib.md5):
         raise Exception
     return portage_latest_path
 
@@ -46,7 +44,7 @@ def download_latest_stage3(build_arch="amd64", build_proc="amd64"):
         with open(stage3_path, 'wb') as w:
             w.write(r.read())
 
-    if not check_stage3_md5sum(stage3_latest_url, stage3_path):
+    if not check_digest(stage3_latest_url, stage3_path, hashlib.sha512):
         raise Exception
     return stage3_path
 
@@ -63,12 +61,6 @@ def check_digest(url, local_path, hash_algorithm):
     print("digest of %s is %s" % (local_path, h.hexdigest()))
     return digest == h.hexdigest()
 
-def check_portage_md5sum(url, portage_latest_path):
-    return check_digest(url, portage_latest_path, hashlib.md5)
-    
-def check_stage3_md5sum(stage3_latest_url, stage3_path):
-    return check_digest(stage3_latest_url, stage3_path, hashlib.sha512)
-    
 def get_digest_from_url(base_url, digest_type):
     url = base_url + digest_type
     file_name = base_url.split("/")[-1]
@@ -81,34 +73,14 @@ def get_digest_from_url(base_url, digest_type):
         if name == file_name:
             return digest
    
-def setting(build_arch="amd64", build_proc="amd64"):
-    stage3_latest_url = get_latest_stage3(build_arch, build_proc)
-    stage3_file_name = stage3_latest_url.split("/")[-1]
-    print("stage3 file name is %s" % (stage3_file_name))
-
+def setting():
     remote_env = dict()
-    # these two (configuring the compiler) and the stage3 url can be changed to build a 32 bit system
-    remote_env["accept_keywords"] = "amd64"
-    remote_env["chost"] = "x86_64-pc-linux-gnu"
-    # kernel version to use
-    remote_env["kernel_version"] = "amd64"
-    # timezone (as a subdirectory of /usr/share/zoneinfo)
-    remote_env["timezone"] = "UTC"
-    # locale
-    remote_env["locale"] = "en_US.utf8"
-    # chroot directory for the installation
-    remote_env["chroot"] = "/mnt/gentoo"
-    # number of cpus in the host system (to speed up make and for kernel config)
-    nr_cpus = run("cat /proc/cpuinfo | grep processor | wc -l")
-    print("number of cpu is %s" % (nr_cpus))
-    remote_env["nr_cpus"] = nr_cpus
-    # user passwords for password based ssh logins
     remote_env["password_root"] = "vagrant"
     remote_env["password_vagrant"] = "vagrant"
     # the public key for vagrants ssh
     remote_env["vagrant_ssh_key_url"] = "https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub"
 
-def base():
+def make_file_systems():
     sgdisk_opts_format = '-n %(id)d:0:%(amount)s -t %(id)d:%(fid)s -c %(id)d:"%(name)s"'
     sgdisk_options = []
     sgdisk_options.append({'id' : 1, "amount" : "+128M", "fid" : "8300", "name" : "linux-boot"})
@@ -119,30 +91,27 @@ def base():
     sgdisk_option = ' '.join([ sgdisk_opts_format % i for i in sgdisk_options])
     sgdisk_option += ' -p /dev/sda'
     run("sgdisk %s" % (sgdisk_option))
+
     run("mkswap /dev/sda3")
-    run("swapon /dev/sda3")
-    
     run("mkfs.ext2 /dev/sda1")
     run("mkfs.ext4 /dev/sda4")
 
+
+def mount_file_systems():
+    run("swapon /dev/sda3")
     run("mount /dev/sda4 %s" % (env.chroot))
 
-    
-    stage3_path = download_latest_stage3()
-    portage_path = download_latest_portage()
-    put(stage3_path, env.chroot)
-    put(portage_path, env.chroot)
     with cd(env.chroot):
         run("mkdir boot")
         run("mount /dev/sda1 boot")
 
-        #stage3_latest_url = get_latest_stage3("amd64", "amd64")
-        #stage3_file_name = stage3_latest_url.split("/")[-1]
+def upload_and_decompress_stage3_and_portage():
+    stage3_path = download_latest_stage3()
+    portage_path = download_latest_portage()
+    with cd(env.chroot):
+        put(stage3_path)
+        put(portage_path)
 
-        #run('wget -nv --tries=5 "%s"' % (stage3_latest_url))
-        #run('tar xpf "%s"' % (stage3_file_name))
-        #run('rm "%s"' % (stage3_file_name))
-        
         stage3_file_name = stage3_path.split('/')[-1]
         run('tar xpf "%s"' % (stage3_file_name))
         run('rm "%s"' % (stage3_file_name))
@@ -151,32 +120,47 @@ def base():
         run('tar xjf %s -C %s' % (portage_file_name, "usr"))
         run('rm "%s"' % (portage_file_name))
 
-        run('mount -t proc none "%s/proc"' % (env.chroot))
-        run('mount --rbind /dev "%s/dev"' % (env.chroot))
+def exec_with_chroot(command):
+    run('chroot "%s" %s' % (env.chroot, command))
 
-        run('cp /etc/resolv.conf "%s/etc/"' % (env.chroot))
+def prepare_chroot():
+    run('mount -t proc none "%s/proc"' % (env.chroot))
+    run('mount --rbind /dev "%s/dev"' % (env.chroot))
+
+    run('cp /etc/resolv.conf "%s/etc/"' % (env.chroot))
+    exec_with_chroot('env-update')
+
+
+def build_gentoo():
+    make_file_systems()
+    mount_file_systems()
+
+    upload_and_decompress_stage3_and_portage()
+    prepare_chroot()
+
+    with cd(env.chroot):
         run('date -u > "%s/etc/vagrant_box_build_time"' % (env.chroot))
-        run('chroot "%s" env-update' % (env.chroot))
 
-        command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
-        run('chroot "%s" %s' % (env.chroot, command))
-        
-        chroot1()
-        chroot2()
-        chroot3()
+    setting_portage()
+    setting_network()
+    setting_mounts()
+    set_timezone()
+    set_locale()
 
-def chroot1():
+def setting_network():
+    command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
+    exec_with_chroot(command)
     net_file = 'files/net'
     put(net_file, env.chroot + '/etc/conf.d/net')
     commands = []
     commands.append('ln -s net.lo /etc/init.d/net.eth0')
     commands.append('rc-update add net.eth0 default')
     commands.append('rc-update add sshd default')
-    for command in commands:
-        run('chroot "%s" %s' % (env.chroot, command))
+    map(exec_with_chroot, commands)
 
 def get_make_conf_env():
     make_conf_env = {}
+    # these two (configuring the compiler) and the stage3 url can be changed to build a 32 bit system
     make_conf_env["accept_keywords"] = "amd64"
     make_conf_env["chost"] = "x86_64-pc-linux-gnu"
     # number of cpus in the host system (to speed up make and for kernel config)
@@ -186,31 +170,27 @@ def get_make_conf_env():
     make_conf_env["nr_cpus2"] = nr_cpus + 1
     return make_conf_env
  
-def chroot2():
+def setting_mounts():
     fstab_file = 'files/fstab'
     put(fstab_file, env.chroot + '/etc/fstab')
 
+def setting_portage():
     make_conf_file = 'files/make.conf'
     make_conf_env = get_make_conf_env()
     upload_template(make_conf_file, env.chroot + '/etc/portage/make.conf', make_conf_env, backup=False)
 
-def chroot3():
+def set_timezone():
     # timezone (as a subdirectory of /usr/share/zoneinfo)
-    remote_env = dict()
-    remote_env["timezone"] = "Japan"
-    commands = [] 
-    commands.append('ln -sf /usr/share/zoneinfo/%s /etc/localtime' % (remote_env["timezone"]))
+    timezone = "Japan"
+    command = 'ln -sf /usr/share/zoneinfo/%s /etc/localtime' % (timezone)
+    exec_with_chroot(command)
 
-    # locale
-    remote_env["locale"] = "en_US.utf8"
-    run('echo LANG="%s" > %s/etc/env.d/02locale' % (remote_env["locale"], env.chroot))
-    #commands.append('env-update')
-    #commands.append('/bin/bash -c "env-update && source /etc/profile && emerge-webrsync"')
-    commands.append('/bin/bash -c "env-update && source /etc/profile && emerge --sync --quiet"')
-    #commands.append('emerge-webrsync')
-
-    for command in commands:
-        run('chroot "%s" %s' % (env.chroot, command))
+def set_locale():
+    locale = "en_US.utf8"
+    run('echo LANG="%s" > %s/etc/env.d/02locale' % (locale, env.chroot))
+    command = '/bin/bash -c "env-update && source /etc/profile && emerge --sync --quiet"'
+    
+    exec_with_chroot(command)
 
 def kernel():
     package_use_file = 'files/package.use'
@@ -241,8 +221,7 @@ def grub():
     commands.append('grub2-mkconfig -o /boot/grub2/grub.cfg')
     commands.append('grub2-install --no-floppy /dev/sda')
     
-    for command in commands:
-        run('chroot "%s" %s' % (env.chroot, command))
+    map(exec_with_chroot, commands)
 
 def test_mount():
     run('mount /dev/sda4 /mnt/gentoo')
