@@ -32,7 +32,7 @@ def download_latest_portage(url="http://ftp.jaist.ac.jp/pub/Linux/Gentoo/snapsho
         with open(portage_latest_path, 'wb') as w:
             w.write(r.read())
 
-    if not check_portage_md5sum(url, portage_latest_path):
+    if not check_digest(url, portage_latest_path, hashlib.md5):
         raise Exception
     return portage_latest_path
 
@@ -44,7 +44,7 @@ def download_latest_stage3(build_arch="amd64", build_proc="amd64"):
         with open(stage3_path, 'wb') as w:
             w.write(r.read())
 
-    if not check_stage3_md5sum(stage3_latest_url, stage3_path):
+    if not check_digest(stage3_latest_url, stage3_path, hashlib.sha512):
         raise Exception
     return stage3_path
 
@@ -61,12 +61,6 @@ def check_digest(url, local_path, hash_algorithm):
     print("digest of %s is %s" % (local_path, h.hexdigest()))
     return digest == h.hexdigest()
 
-def check_portage_md5sum(url, portage_latest_path):
-    return check_digest(url, portage_latest_path, hashlib.md5)
-    
-def check_stage3_md5sum(stage3_latest_url, stage3_path):
-    return check_digest(stage3_latest_url, stage3_path, hashlib.sha512)
-    
 def get_digest_from_url(base_url, digest_type):
     url = base_url + digest_type
     file_name = base_url.split("/")[-1]
