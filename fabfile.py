@@ -190,6 +190,9 @@ def setting_portage():
     make_conf_file = 'files/make.conf'
     make_conf_env = get_make_conf_env()
     upload_template(make_conf_file, env.chroot + '/etc/portage/make.conf', make_conf_env, backup=False)
+    package_keywords = 'files/package.keywords'
+    put(package_keywords, env.chroot + '/etc/portage/package.keywords')
+
 
 def set_timezone():
     # timezone (as a subdirectory of /usr/share/zoneinfo)
@@ -222,9 +225,6 @@ def kernel():
     run('chroot "%s" %s' % (env.chroot, command))
 
 def grub():
-    package_keywords = 'files/package.keywords'
-    put(package_keywords, env.chroot + '/etc/portage/package.keywords')
-
     commands = []
     commands.append('/bin/bash -c "env-update && source /etc/profile && emerge grub"')
     commands.append('sed -i "s/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=1/g" /etc/default/grub')
