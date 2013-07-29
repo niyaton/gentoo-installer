@@ -200,14 +200,17 @@ def chroot2():
     make_conf_env = get_make_conf_env()
     upload_template(make_conf_file, env.chroot + '/etc/portage/make.conf', make_conf_env, backup=False)
 
-def chroot3():
+def set_timezone():
     # timezone (as a subdirectory of /usr/share/zoneinfo)
-    remote_env = dict()
-    remote_env["timezone"] = "Japan"
-    commands = [] 
-    commands.append('ln -sf /usr/share/zoneinfo/%s /etc/localtime' % (remote_env["timezone"]))
+    timezone = "Japan"
+    command = 'ln -sf /usr/share/zoneinfo/%s /etc/localtime' % (timezone)
+    exec_with_chroot(command)
+
+def chroot3():
+    set_timezone()
 
     # locale
+    remote_env = dict()
     remote_env["locale"] = "en_US.utf8"
     run('echo LANG="%s" > %s/etc/env.d/02locale' % (remote_env["locale"], env.chroot))
     commands.append('/bin/bash -c "env-update && source /etc/profile && emerge --sync --quiet"')
