@@ -148,19 +148,23 @@ def upload_and_decompress_stage3_and_portage():
 def exec_with_chroot(command):
     run('chroot "%s" %s' % (env.chroot, command))
 
+def prepare_chroot():
+    run('mount -t proc none "%s/proc"' % (env.chroot))
+    run('mount --rbind /dev "%s/dev"' % (env.chroot))
+
+    run('cp /etc/resolv.conf "%s/etc/"' % (env.chroot))
+    exec_with_chroot('env-update')
+
+
 def build_gentoo():
     make_file_systems()
     mount_file_systems()
 
     upload_and_decompress_stage3_and_portage()
-    with cd(env.chroot):
-        run('mount -t proc none "%s/proc"' % (env.chroot))
-        run('mount --rbind /dev "%s/dev"' % (env.chroot))
+    prepare_chroot()
 
-        run('cp /etc/resolv.conf "%s/etc/"' % (env.chroot))
+    with cd(env.chroot):
         run('date -u > "%s/etc/vagrant_box_build_time"' % (env.chroot))
-        run('chroot "%s" env-update' % (env.chroot))
-                
 
     setting_portage()
     setting_network()
