@@ -1,4 +1,5 @@
-from fabric.api import run, shell_env, env, cd, put, open_shell
+from fabric.api import run, env, cd, put
+from contextlib import closing
 from fabric.contrib.files import upload_template
 from urllib2 import urlopen
 import os
@@ -25,28 +26,30 @@ def get_latest_stage3(build_arch, build_proc):
     print("Latest stage3 file is here: %s" % (stage3_current_url))
     return stage3_current_url
 
-def download_latest_portage(url="http://ftp.jaist.ac.jp/pub/Linux/Gentoo/snapshots/portage-latest.tar.bz2"):
+def download_latest_portage():
+    url = "http://ftp.jaist.ac.jp/pub/Linux/Gentoo/snapshots/portage-latest.tar.bz2"
     portage_latest_path = "downloads/portage.tar.bz2"
-    if not os.path.exists(portage_latest_path):
-        r = urlopen(url)
-        with open(portage_latest_path, 'wb') as w:
-            w.write(r.read())
 
-    if not check_digest(url, portage_latest_path, hashlib.md5):
-        raise Exception
+    download_base_file(url, portage_latest_path, hashlib.md5)
+
     return portage_latest_path
 
 def download_latest_stage3(build_arch="amd64", build_proc="amd64"):
     stage3_latest_url = get_latest_stage3(build_arch, build_proc)
     stage3_path = "downloads/stage3.tar.bz2"
-    if not os.path.exists(stage3_path):
-        r = urlopen(stage3_latest_url)
-        with open(stage3_path, 'wb') as w:
-            w.write(r.read())
 
-    if not check_digest(stage3_latest_url, stage3_path, hashlib.sha512):
-        raise Exception
+    download_base_file(stage3_latest_url, stage3_path, hashlib.sha512)
+
     return stage3_path
+
+def download_base_file(url, local_path, hash_algorithm):
+    if not os.path.exists(local_path):
+        with closing(urlopen(url)) as r:
+            with open(local_path, 'wb') as w:
+                w.write(r.read())
+
+    if not check_digest(url, local_path, hash_algorithm):
+        raise Exception
 
 def check_digest(url, local_path, hash_algorithm):
     if hash_algorithm == hashlib.md5:
@@ -64,14 +67,14 @@ def check_digest(url, local_path, hash_algorithm):
 def get_digest_from_url(base_url, digest_type):
     url = base_url + digest_type
     file_name = base_url.split("/")[-1]
-    r = urlopen(url)
-    for line in r.readlines():
-        if line.startswith('#'):
-            continue
-        line = line.rstrip()
-        digest, name = line.split('  ')
-        if name == file_name:
-            return digest
+    with closing(urlopen(url)) as r:
+        for line in r.readlines():
+            if line.startswith('#'):
+                continue
+            line = line.rstrip()
+            digest, name = line.split('  ')
+            if name == file_name:
+                return digest
    
 def setting():
     remote_env = dict()
@@ -109,14 +112,14 @@ def upload_and_decompress_stage3_and_portage():
     stage3_path = download_latest_stage3()
     portage_path = download_latest_portage()
     with cd(env.chroot):
-        put(stage3_path)
-        put(portage_path)
-
         stage3_file_name = stage3_path.split('/')[-1]
+        put(stage3_path, stage3_file_name)
+        portage_file_name = portage_path.split('/')[-1]
+        put(portage_path, portage_file_name)
+
         run('tar xpf "%s"' % (stage3_file_name))
         run('rm "%s"' % (stage3_file_name))
 
-        portage_file_name = portage_path.split('/')[-1]
         run('tar xjf %s -C %s' % (portage_file_name, "usr"))
         run('rm "%s"' % (portage_file_name))
 
