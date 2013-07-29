@@ -1,4 +1,4 @@
-from fabric.api import run, env, cd, put
+from fabric.api import run, env, cd, put, reboot
 from contextlib import closing
 from fabric.contrib.files import upload_template
 from urllib2 import urlopen
@@ -147,7 +147,17 @@ def build_gentoo():
     set_locale()
 
     kernel()
+    setting_vagrant()
+    install_ruby()
+    install_chef()
+    install_cron()
+    install_syslog()
+    install_nfs()
     grub()
+    cleanup()
+    zerodisk()
+    reboot()
+
 
 def setting_network():
     command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
