@@ -76,7 +76,6 @@ def get_portage_md5sum(stage3_latest_url):
         if file_name == stage3_file_name:
             return digest
 
-
 def get_stage3_digest(stage3_latest_url):
     url = stage3_latest_url + '.DIGESTS'
     stage3_file_name = stage3_latest_url.split("/")[-1]
