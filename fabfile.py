@@ -1,4 +1,4 @@
-from fabric.api import run, env, cd, put, reboot, prefix, shell_env
+from fabric.api import run, env, cd, put, prefix, shell_env
 from contextlib import closing
 from fabric.contrib.files import upload_template
 from urllib2 import urlopen
@@ -119,6 +119,13 @@ def upload_and_decompress_stage3_and_portage():
 def exec_with_chroot(command):
     run('chroot "%s" %s' % (env.chroot, command))
 
+def exec_with_chroot_and_new_env(command):
+    exec_command = ' && '.join(['env-update', 'source /etc/profile', command])
+    exec_with_chroot('/bin/bash -c "%s"' % (exec_command))
+
+def emerge(arg):
+    exec_with_chroot_and_new_env('emerge %s' % (arg))
+
 def prepare_chroot():
     run('mount -t proc none "%s/proc"' % (env.chroot))
     run('mount --rbind /dev "%s/dev"' % (env.chroot))
@@ -136,13 +143,13 @@ def build_gentoo():
     with cd(env.chroot):
         run('date -u > "%s/etc/vagrant_box_build_time"' % (env.chroot))
 
-    setting_portage()
     setting_network()
     setting_mounts()
-    set_timezone()
-    set_locale()
+    setting_timezone()
+    setting_locale()
+    setting_portage()
 
-    kernel()
+    gen_kernel()
     setting_vagrant()
     install_vmware_tools()
     install_ruby()
@@ -150,17 +157,15 @@ def build_gentoo():
     install_cron()
     install_syslog()
     install_nfs()
-    grub()
+    install_grub()
     cleanup()
     zerodisk()
-    #reboot()
+    run('reboot')
 
 def setting_network():
-    command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
-    exec_with_chroot(command)
-    net_file = 'files/net'
-    put(net_file, env.chroot + '/etc/conf.d/net')
+    put('files/net', env.chroot + '/etc/conf.d/net')
     commands = []
+    commands.append('ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules')
     commands.append('ln -s net.lo /etc/init.d/net.eth0')
     commands.append('rc-update add net.eth0 default')
     commands.append('rc-update add sshd default')
@@ -179,8 +184,7 @@ def get_make_conf_env():
     return make_conf_env
  
 def setting_mounts():
-    fstab_file = 'files/fstab'
-    put(fstab_file, env.chroot + '/etc/fstab')
+    put('files/fstab', env.chroot + '/etc/fstab')
 
 def setting_portage():
     make_conf_file = 'files/make.conf'
@@ -188,42 +192,38 @@ def setting_portage():
     upload_template(make_conf_file, env.chroot + '/etc/portage/make.conf', make_conf_env, backup=False)
     package_keywords = 'files/package.keywords'
     put(package_keywords, env.chroot + '/etc/portage/package.keywords')
+    exec_with_chroot_and_new_env('emerge --sync --quiet')
 
-def set_timezone():
+def setting_timezone():
     # timezone (as a subdirectory of /usr/share/zoneinfo)
     timezone = "Japan"
     command = 'ln -sf /usr/share/zoneinfo/%s /etc/localtime' % (timezone)
     exec_with_chroot(command)
 
-def set_locale():
+def setting_locale():
     locale = "en_US.utf8"
     run('echo LANG="%s" > %s/etc/env.d/02locale' % (locale, env.chroot))
-    command = '/bin/bash -c "env-update && source /etc/profile && emerge --sync --quiet"'
-    
-    exec_with_chroot(command)
 
-def kernel():
-    package_use_file = 'files/package.use'
-    put(package_use_file, env.chroot + '/etc/portage/package.use')
+def gen_kernel():
+    put('files/package.use', env.chroot + '/etc/portage/package.use')
 
     # kernel version to use
     remote_env = dict()
     remote_env["kernel_version"] = "3.8.13"
 
-    command = '/bin/bash -c "env-update && source /etc/profile && emerge =sys-kernel/gentoo-sources-%s"' % (remote_env['kernel_version'])
-    run('chroot "%s" %s' % (env.chroot, command))
+    emerge('=sys-kernel/gentoo-sources-%s"' % (remote_env['kernel_version']))
 
-    kernel_config = 'files/.config'
-    put(kernel_config, env.chroot + '/usr/src/linux/.config')
+    put('files/.config', env.chroot + '/usr/src/linux/.config')
 
-    command = '/bin/bash -c "env-update && source /etc/profile && cd /usr/src/linux && make && make modules_install && make install"'
-    run('chroot "%s" %s' % (env.chroot, command))
+    command = 'cd /usr/src/linux && make && make modules_install && make install"'
+    exec_with_chroot_and_new_env(command)
 
-def grub():
+def install_grub():
+    emerge('grub')
+    exec_with_chroot_and_new_env('grep -v rootfs /proc/mounts > /etc/mtab')
+
     commands = []
-    commands.append('/bin/bash -c "env-update && source /etc/profile && emerge grub"')
     commands.append('sed -i "s/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=1/g" /etc/default/grub')
-    commands.append('/bin/bash -c "env-update && source /etc/profile && grep -v rootfs /proc/mounts > /etc/mtab"')
     commands.append('mkdir /boot/grub2')
     commands.append('grub2-mkconfig -o /boot/grub2/grub.cfg')
     commands.append('grub2-install --no-floppy /dev/sda')
@@ -235,17 +235,6 @@ def test_mount():
     run('mount /dev/sda1 /mnt/gentoo/boot')
     run('mount -t proc none "%s/proc"' % (env.chroot))
     run('mount --rbind /dev "%s/dev"' % (env.chroot))
-
-def emerge(arg):
-    base = '/bin/bash -c "%s"'
-    bash_commands = []
-    bash_commands.append('env-update')
-    bash_commands.append('source /etc/profile')
-    bash_commands.append('emerge %s' % (arg))
-    bash_command = ' && '.join(bash_commands)
-
-    command = base % (bash_command)
-    exec_with_chroot(command)
 
 def install_ruby():
     emerge('--autounmask-write ruby:1.9')
@@ -286,9 +275,8 @@ def install_vmware_tools():
         vm_tool_file = 'VMwareTools-*.tar.gz'
         tmp_dir = 'tmp'
         run('tar xzf %s -C %s' % ('/'.join((mount_path, vm_tool_file)), tmp_dir))
-        exec_command = '%s/vmware-tools-distrib/vmware-install.pl -d' % (tmp_dir)
-        command = '/bin/bash -c "env-update && source /etc/profile && %s"'
-        exec_with_chroot(command % (exec_command))
+        command = '%s/vmware-tools-distrib/vmware-install.pl -d' % (tmp_dir)
+        exec_with_chroot_and_new_env(command)
         run('umount %s' % (mount_path))
         put('files/vmware-tools', 'etc/init.d/vmware-tools')
         run('chmod +x etc/init.d/vmware-tools')
@@ -338,7 +326,6 @@ def setting_vagrant():
     with cd(env.chroot + '/etc/ssh'):
         put('files/sshd_config', 'sshd_config')
 
-
 def cleanup():
     exec_with_chroot('eselect news read all')
 
@@ -347,12 +334,7 @@ def cleanup():
     exec_with_chroot('rm -rf /root/.gem')
 
 def zerodisk():
-    empty_file_path = env.chroot + '/boot/EMPTY'
-    run('dd if=/dev/zero of=%s bs=1M || true' % (empty_file_path))
-    run('rm %s' % (empty_file_path))
-    
-    empty_file_path = env.chroot + '/EMPTY'
-    run('dd if=/dev/zero of=%s bs=1M || true' % (empty_file_path))
-    run('rm %s' % (empty_file_path))
-    #reboot()
-    run('reboot')
+    for empty_file_path in ['/boot/EMPTY', '/EMPTY']:
+        empty_file_path = env.chroot + empty_file_path
+        run('dd if=/dev/zero of=%s bs=1M || true' % (empty_file_path))
+        run('rm %s' % (empty_file_path))
