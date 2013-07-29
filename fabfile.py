@@ -250,3 +250,6 @@ def emerge(arg):
 def install_ruby():
     emerge('--autounmask-write ruby:1.9')
     exec_with_chroot('eselect ruby set ruby19')
+
+def install_chef():
+    exec_with_chroot('gem install chef --no-rdoc --no-ri')
