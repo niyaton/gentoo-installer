@@ -147,6 +147,9 @@ def build_gentoo():
     set_timezone()
     set_locale()
 
+    kernel()
+    grub()
+
 def setting_network():
     command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
     exec_with_chroot(command)
