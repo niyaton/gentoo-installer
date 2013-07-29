@@ -161,8 +161,8 @@ def base():
         run('date -u > "%s/etc/vagrant_box_build_time"' % (env.chroot))
         run('chroot "%s" env-update' % (env.chroot))
                 
-        chroot2()
 
+    setting_portage()
     setting_network()
     setting_mounts()
     set_timezone()
@@ -194,7 +194,7 @@ def setting_mounts():
     fstab_file = 'files/fstab'
     put(fstab_file, env.chroot + '/etc/fstab')
 
-def chroot2():
+def setting_portage():
     make_conf_file = 'files/make.conf'
     make_conf_env = get_make_conf_env()
     upload_template(make_conf_file, env.chroot + '/etc/portage/make.conf', make_conf_env, backup=False)
