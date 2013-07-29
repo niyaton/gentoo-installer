@@ -148,6 +148,7 @@ def build_gentoo():
 
     kernel()
     setting_vagrant()
+    install_vmware_tools()
     install_ruby()
     install_chef()
     install_cron()
@@ -282,7 +283,29 @@ def install_nfs():
     #emerge(' net-fs/autofs')
 
 def install_vmware_tools():
+    
     emerge('--autounmask-write app-emulation/vmware-tools')
+
+    with cd(env.chroot):
+        vmware_iso = 'opt/vmware/lib/vmware/isoimages/linux.iso'
+        mount_path = 'mnt/vmware-tools'
+        run('mkdir %s' % (mount_path))
+        run('mkdir etc/rc.d')
+        with cd('etc/rc.d'):
+            run('mkdir rc{0..6}.d')
+        run('mount -t iso9660 %s %s' % (vmware_iso, mount_path))
+        vm_tool_file = 'VMwareTools-*.tar.gz'
+        tmp_dir = 'tmp'
+        run('tar xzf %s -C %s' % ('/'.join((mount_path, vm_tool_file)), tmp_dir))
+        exec_command = '%s/vmware-tools-distrib/vmware-install.pl -d' % (tmp_dir)
+        command = '/bin/bash -c "env-update && source /etc/profile && %s"'
+        exec_with_chroot(command % (exec_command))
+        run('umount %s' % (mount_path))
+        #exec_with_chroot('/bin/bash -c "cd /etc/init.d && ln -s /etc/rc.d/vmware-tools"')
+        put('files/vmware-tools', 'etc/init.d/vmware-tools')
+        run('chmod +x etc/init.d/vmware-tools')
+
+        exec_with_chroot('rc-update add vmware-tools default')
 
 def setting_vagrant():
     remote_env = dict()

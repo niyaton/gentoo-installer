@@ -1,1 +1,2 @@
 sys-kernel/gentoo-sources symlink
+app-emulation/vmware-tools vmware_guest_linux
