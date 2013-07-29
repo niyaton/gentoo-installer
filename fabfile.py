@@ -205,17 +205,17 @@ def set_timezone():
     command = 'ln -sf /usr/share/zoneinfo/%s /etc/localtime' % (timezone)
     exec_with_chroot(command)
 
+def set_locale():
+    locale = "en_US.utf8"
+    run('echo LANG="%s" > %s/etc/env.d/02locale' % (locale, env.chroot))
+    command = '/bin/bash -c "env-update && source /etc/profile && emerge --sync --quiet"'
+    
+    exec_with_chroot(command)
+
 def chroot3():
     set_timezone()
-
-    # locale
-    remote_env = dict()
-    remote_env["locale"] = "en_US.utf8"
-    run('echo LANG="%s" > %s/etc/env.d/02locale' % (remote_env["locale"], env.chroot))
-    commands.append('/bin/bash -c "env-update && source /etc/profile && emerge --sync --quiet"')
+    set_locale()
     
-    map(exec_with_chroot, commands)
-
 def kernel():
     package_use_file = 'files/package.use'
     put(package_use_file, env.chroot + '/etc/portage/package.use')
