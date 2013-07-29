@@ -79,31 +79,12 @@ def get_digest_from_url(base_url, digest_type):
         if name == file_name:
             return digest
    
-def setting(build_arch="amd64", build_proc="amd64"):
-    stage3_latest_url = get_latest_stage3(build_arch, build_proc)
-    stage3_file_name = stage3_latest_url.split("/")[-1]
-    print("stage3 file name is %s" % (stage3_file_name))
-
+def setting():
     remote_env = dict()
-    # these two (configuring the compiler) and the stage3 url can be changed to build a 32 bit system
-    remote_env["accept_keywords"] = "amd64"
-    remote_env["chost"] = "x86_64-pc-linux-gnu"
-    # kernel version to use
-    remote_env["kernel_version"] = "amd64"
-    # timezone (as a subdirectory of /usr/share/zoneinfo)
-    remote_env["timezone"] = "UTC"
-    # locale
-    remote_env["locale"] = "en_US.utf8"
-    # number of cpus in the host system (to speed up make and for kernel config)
-    nr_cpus = run("cat /proc/cpuinfo | grep processor | wc -l")
-    print("number of cpu is %s" % (nr_cpus))
-    remote_env["nr_cpus"] = nr_cpus
-    # user passwords for password based ssh logins
     remote_env["password_root"] = "vagrant"
     remote_env["password_vagrant"] = "vagrant"
     # the public key for vagrants ssh
     remote_env["vagrant_ssh_key_url"] = "https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub"
-
 
 def make_file_systems():
     sgdisk_opts_format = '-n %(id)d:0:%(amount)s -t %(id)d:%(fid)s -c %(id)d:"%(name)s"'
@@ -185,6 +166,7 @@ def setting_network():
 
 def get_make_conf_env():
     make_conf_env = {}
+    # these two (configuring the compiler) and the stage3 url can be changed to build a 32 bit system
     make_conf_env["accept_keywords"] = "amd64"
     make_conf_env["chost"] = "x86_64-pc-linux-gnu"
     # number of cpus in the host system (to speed up make and for kernel config)
