@@ -162,14 +162,15 @@ def base():
         run('date -u > "%s/etc/vagrant_box_build_time"' % (env.chroot))
         run('chroot "%s" env-update' % (env.chroot))
 
-        command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
-        exec_with_chroot(command)
-        
-        chroot1()
+                
         chroot2()
         chroot3()
 
-def chroot1():
+    setting_network()
+
+def setting_network():
+    command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
+    exec_with_chroot(command)
     net_file = 'files/net'
     put(net_file, env.chroot + '/etc/conf.d/net')
     commands = []
