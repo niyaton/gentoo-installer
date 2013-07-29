@@ -234,3 +234,15 @@ def test_mount():
     run('mount /dev/sda1 /mnt/gentoo/boot')
     run('mount -t proc none "%s/proc"' % (env.chroot))
     run('mount --rbind /dev "%s/dev"' % (env.chroot))
+
+def emerge(arg):
+    base = '/bin/bash -c "%s"'
+    bash_commands = []
+    bash_commands.append('env-update')
+    bash_commands.append('source /etc/profile')
+    bash_commands.append('emerge %s' % (arg))
+    bash_command = ' && '.join(bash_commands)
+
+    #command = ' '.join((base, bash_command))
+    command = base % (bash_command)
+    exec_with_chroot(command)
