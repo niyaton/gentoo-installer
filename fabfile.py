@@ -38,13 +38,6 @@ def download_latest_portage(url="http://ftp.jaist.ac.jp/pub/Linux/Gentoo/snapsho
         raise Exception
     return portage_latest_path
 
-def check_portage_md5sum(url, portage_latest_path):
-    digest = get_portage_md5sum(url)
-    print("digest of latest portage is %s" % (digest))
-    h = hashlib.md5(open(portage_latest_path, 'rb').read())
-    print("digest of %s is %s" % (portage_latest_path, h.hexdigest()))
-    return digest == h.hexdigest()
-
 def download_latest_stage3(build_arch="amd64", build_proc="amd64"):
     stage3_latest_url = get_latest_stage3(build_arch, build_proc)
     stage3_path = "downloads/stage3.tar.bz2"
@@ -57,38 +50,37 @@ def download_latest_stage3(build_arch="amd64", build_proc="amd64"):
         raise Exception
     return stage3_path
 
-def check_stage3_md5sum(stage3_latest_url, stage3_path):
-    digest = get_stage3_digest(stage3_latest_url)
-    print("digest of latest stage3 is %s" % (digest))
-    h = hashlib.sha512(open(stage3_path, 'rb').read())
-    print("digest of %s is %s" % (stage3_path, h.hexdigest()))
+def check_digest(url, local_path, hash_algorithm):
+    if hash_algorithm == hashlib.md5:
+        digest = get_digest_from_url(url, '.md5sum')
+    elif hash_algorithm == hashlib.sha512:
+        digest = get_digest_from_url(url, '.DIGESTS')
+    else:
+        raise Exception
+
+    print("digest of latest portage is %s" % (digest))
+    h = hash_algorithm(open(local_path, 'rb').read())
+    print("digest of %s is %s" % (local_path, h.hexdigest()))
     return digest == h.hexdigest()
 
-def get_portage_md5sum(stage3_latest_url):
-    url = stage3_latest_url + '.md5sum'
-    stage3_file_name = stage3_latest_url.split("/")[-1]
+def check_portage_md5sum(url, portage_latest_path):
+    return check_digest(url, portage_latest_path, hashlib.md5)
+    
+def check_stage3_md5sum(stage3_latest_url, stage3_path):
+    return check_digest(stage3_latest_url, stage3_path, hashlib.sha512)
+    
+def get_digest_from_url(base_url, digest_type):
+    url = base_url + digest_type
+    file_name = base_url.split("/")[-1]
     r = urlopen(url)
     for line in r.readlines():
         if line.startswith('#'):
             continue
         line = line.rstrip()
-        digest, file_name = line.split('  ')
-        if file_name == stage3_file_name:
+        digest, name = line.split('  ')
+        if name == file_name:
             return digest
-
-
-def get_stage3_digest(stage3_latest_url):
-    url = stage3_latest_url + '.DIGESTS'
-    stage3_file_name = stage3_latest_url.split("/")[-1]
-    r = urlopen(url)
-    for line in r.readlines():
-        if line.startswith('#'):
-            continue
-        line = line.rstrip()
-        digest, file_name = line.split('  ')
-        if file_name == stage3_file_name:
-            return digest
-
+   
 def setting(build_arch="amd64", build_proc="amd64"):
     stage3_latest_url = get_latest_stage3(build_arch, build_proc)
     stage3_file_name = stage3_latest_url.split("/")[-1]
