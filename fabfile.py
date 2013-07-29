@@ -130,23 +130,13 @@ def mount_file_systems():
         run("mkdir boot")
         run("mount /dev/sda1 boot")
 
-def upload_stage3_and_portage():
+def upload_and_decompress_stage3_and_portage():
     stage3_path = download_latest_stage3()
     portage_path = download_latest_portage()
-    put(stage3_path, env.chroot)
-    put(portage_path, env.chroot)
-
-    return (stage3_path, portage_path)
-
-def exec_with_chroot(command):
-    run('chroot "%s" %s' % (env.chroot, command))
-
-def base():
-    make_file_systems()
-    mount_file_systems()
-    stage3_path, portage_path = upload_stage3_and_portage()
-
     with cd(env.chroot):
+        put(stage3_path)
+        put(portage_path)
+
         stage3_file_name = stage3_path.split('/')[-1]
         run('tar xpf "%s"' % (stage3_file_name))
         run('rm "%s"' % (stage3_file_name))
@@ -155,6 +145,15 @@ def base():
         run('tar xjf %s -C %s' % (portage_file_name, "usr"))
         run('rm "%s"' % (portage_file_name))
 
+def exec_with_chroot(command):
+    run('chroot "%s" %s' % (env.chroot, command))
+
+def base():
+    make_file_systems()
+    mount_file_systems()
+
+    upload_and_decompress_stage3_and_portage()
+    with cd(env.chroot):
         run('mount -t proc none "%s/proc"' % (env.chroot))
         run('mount --rbind /dev "%s/dev"' % (env.chroot))
 
