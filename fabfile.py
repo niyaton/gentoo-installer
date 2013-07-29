@@ -149,7 +149,7 @@ def build_gentoo():
     setting_locale()
     setting_portage()
 
-    kernel()
+    gen_kernel()
     setting_vagrant()
     install_vmware_tools()
     install_ruby()
@@ -204,7 +204,7 @@ def setting_locale():
     locale = "en_US.utf8"
     run('echo LANG="%s" > %s/etc/env.d/02locale' % (locale, env.chroot))
 
-def kernel():
+def gen_kernel():
     put('files/package.use', env.chroot + '/etc/portage/package.use')
 
     # kernel version to use
