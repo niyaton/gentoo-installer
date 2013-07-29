@@ -246,3 +246,7 @@ def emerge(arg):
     #command = ' '.join((base, bash_command))
     command = base % (bash_command)
     exec_with_chroot(command)
+
+def install_ruby():
+    emerge('--autounmask-write ruby:1.9')
+    exec_with_chroot('eselect ruby set ruby19')
