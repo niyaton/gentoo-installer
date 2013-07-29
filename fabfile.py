@@ -342,7 +342,7 @@ def setting_vagrant():
 def cleanup():
     exec_with_chroot('eselect news read all')
 
-    run('rm %s/tmp/*' % (env.chroot))
+    run('rm -rf %s/tmp/*' % (env.chroot))
     run('rm -rf %s/var/log/*' % (env.chroot))
     exec_with_chroot('rm -rf /root/.gem')
 
