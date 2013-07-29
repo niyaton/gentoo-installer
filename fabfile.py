@@ -167,6 +167,7 @@ def base():
         chroot3()
 
     setting_network()
+    setting_mounts()
 
 def setting_network():
     command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
@@ -190,10 +191,12 @@ def get_make_conf_env():
     make_conf_env["nr_cpus2"] = nr_cpus + 1
     return make_conf_env
  
-def chroot2():
+def setting_mounts():
     fstab_file = 'files/fstab'
     put(fstab_file, env.chroot + '/etc/fstab')
 
+
+def chroot2():
     make_conf_file = 'files/make.conf'
     make_conf_env = get_make_conf_env()
     upload_template(make_conf_file, env.chroot + '/etc/portage/make.conf', make_conf_env, backup=False)
