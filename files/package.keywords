@@ -1,1 +1,3 @@
 sys-boot/grub:2
+dev-util/ragel ~amd64
+app-emulation/vmware-tools ~amd64

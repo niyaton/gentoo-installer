@@ -1,4 +1,4 @@
-from fabric.api import run, env, cd, put
+from fabric.api import run, env, cd, put, reboot
 from contextlib import closing
 from fabric.contrib.files import upload_template
 from urllib2 import urlopen
@@ -77,11 +77,7 @@ def get_digest_from_url(base_url, digest_type):
                 return digest
    
 def setting():
-    remote_env = dict()
-    remote_env["password_root"] = "vagrant"
-    remote_env["password_vagrant"] = "vagrant"
-    # the public key for vagrants ssh
-    remote_env["vagrant_ssh_key_url"] = "https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub"
+    pass
 
 def make_file_systems():
     sgdisk_opts_format = '-n %(id)d:0:%(amount)s -t %(id)d:%(fid)s -c %(id)d:"%(name)s"'
@@ -151,7 +147,17 @@ def build_gentoo():
     set_locale()
 
     kernel()
+    setting_vagrant()
+    install_ruby()
+    install_chef()
+    install_cron()
+    install_syslog()
+    install_nfs()
     grub()
+    cleanup()
+    zerodisk()
+    reboot()
+
 
 def setting_network():
     command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
@@ -234,3 +240,111 @@ def test_mount():
     run('mount /dev/sda1 /mnt/gentoo/boot')
     run('mount -t proc none "%s/proc"' % (env.chroot))
     run('mount --rbind /dev "%s/dev"' % (env.chroot))
+
+def emerge(arg):
+    base = '/bin/bash -c "%s"'
+    bash_commands = []
+    bash_commands.append('env-update')
+    bash_commands.append('source /etc/profile')
+    bash_commands.append('emerge %s' % (arg))
+    bash_command = ' && '.join(bash_commands)
+
+    #command = ' '.join((base, bash_command))
+    command = base % (bash_command)
+    exec_with_chroot(command)
+
+def install_ruby():
+    emerge('--autounmask-write ruby:1.9')
+    exec_with_chroot('eselect ruby set ruby19')
+
+def install_chef():
+    exec_with_chroot('gem install chef --no-rdoc --no-ri')
+
+def install_syslog():
+    emerge('app-admin/rsyslog')
+    exec_with_chroot('rc-update add rsyslog default')
+
+def install_cron():
+    emerge('sys-process/vixie-cron')
+    exec_with_chroot('rc-update add vixie-cron default')
+
+
+def install_nfs():
+    emerge('net-fs/nfs-utils')
+    base = '/bin/bash -c "%s"'
+    bash_commands = []
+    bash_commands.append('env-update')
+    bash_commands.append('source /etc/profile')
+    bash_commands.append('FEATURES=\'-sandbox\' emerge %s' % ('net-fs/autofs'))
+    bash_command = ' && '.join(bash_commands)
+    command = base % (bash_command)
+    exec_with_chroot(command)
+    #emerge(' net-fs/autofs')
+
+def install_vmware_tools():
+    emerge('--autounmask-write app-emulation/vmware-tools')
+
+def setting_vagrant():
+    remote_env = dict()
+    remote_env["password_root"] = "vagrant"
+    remote_env["password_vagrant"] = "vagrant"
+    # the public key for vagrants ssh
+    remote_env["vagrant_ssh_key_url"] = "https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub"
+
+    exec_with_chroot('mkdir -p /home/vagrant/.ssh')
+    exec_with_chroot('chmod 700 /home/vagrant/.ssh')
+    exec_with_chroot('wget --no-check-certificate "%s" -O "/home/vagrant/.ssh/authorized_keys"' % (remote_env["vagrant_ssh_key_url"]))
+    exec_with_chroot('chmod 600 /home/vagrant/.ssh/authorized_keys')
+
+    #cp -f /root/.vbox_version "$chroot/home/vagrant/.vbox_version"
+
+    # for passwordless logins
+    exec_with_chroot('mkdir -p /root/.ssh')
+    #cat /tmp/ssh-root.pub >> "$chroot/root/.ssh/authorized_keys"
+
+    # add vagrant user
+    exec_with_chroot('groupadd -r vagrant')
+    exec_with_chroot('useradd -m -r vagrant -g vagrant -G wheel -c "added by vagrant"')
+
+    # set passwords (for after reboot)
+    run('echo %s > %s' % (remote_env["password_root"], env.chroot + '/tmp/root-password'))
+    run('echo %s >> %s' % (remote_env["password_root"], env.chroot + '/tmp/root-password'))
+
+    run('echo %s > %s' % (remote_env["password_vagrant"], env.chroot + '/tmp/vagrant-password'))
+    run('echo %s >> %s' % (remote_env["password_vagrant"], env.chroot + '/tmp/vagrant-password'))
+
+    exec_with_chroot('/bin/bash -c "passwd < %s"' % ('/tmp/root-password'))
+    exec_with_chroot('/bin/bash -c "passwd vagrant < %s"' % ('/tmp/vagrant-password'))
+
+    exec_with_chroot('chown -R vagrant /home/vagrant')
+
+    emerge('app-admin/sudo')
+
+    run('echo "sshd:ALL" > %s' % (env.chroot + '/etc/hosts.allow'))
+    run('echo "ALL:ALL" > %s' % (env.chroot + '/etc/hosts.deny'))
+    run('echo "vagrant ALL=(ALL) NOPASSWD: ALL" >> %s' % (env.chroot + '/etc/sudoers'))
+
+    with cd(env.chroot + '/etc/ssh'):
+        put('files/sshd_config', 'sshd_config')
+
+
+def cleanup():
+    exec_with_chroot('eselect news read all')
+
+    #exec_with_chroot('rm /tmp/*')
+    run('rm %s/tmp/*' % (env.chroot))
+    run('rm -rf %s/var/log/*' % (env.chroot))
+    #exec_with_chroot('rm -rf /var/log/*')
+    exec_with_chroot('rm -rf /root/.gem')
+
+def zerodisk():
+    empty_file_path = env.chroot + '/boot/EMPTY'
+    run('dd if=/dev/zero of=%s bs=1M || true' % (empty_file_path))
+    run('rm %s' % (empty_file_path))
+    
+    empty_file_path = env.chroot + '/EMPTY'
+    run('dd if=/dev/zero of=%s bs=1M || true' % (empty_file_path))
+    run('rm %s' % (empty_file_path))
+    #reboot()
+    run('reboot')
+

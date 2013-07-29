@@ -1,0 +1,12 @@
+HostBasedAuthentication no
+IgnoreUserKnownHosts yes
+PasswordAuthentication yes
+PermitRootLogin yes
+PermitUserEnvironment no
+PrintLastLog no
+PrintMotd no
+PubKeyAuthentication yes
+Subsystem sftp internal-sftp
+UseDNS no
+UsePAM yes
+UsePrivilegeSeparation sandbox
