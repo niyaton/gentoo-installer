@@ -148,7 +148,7 @@ def upload_and_decompress_stage3_and_portage():
 def exec_with_chroot(command):
     run('chroot "%s" %s' % (env.chroot, command))
 
-def base():
+def build_gentoo():
     make_file_systems()
     mount_file_systems()
 
