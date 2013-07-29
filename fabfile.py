@@ -261,3 +261,16 @@ def install_syslog():
 def install_cron():
     emerge('sys-process/vixie-cron')
     exec_with_chroot('rc-update add vixie-cron default')
+
+
+def install_nfs():
+    emerge('net-fs/nfs-utils')
+    base = '/bin/bash -c "%s"'
+    bash_commands = []
+    bash_commands.append('env-update')
+    bash_commands.append('source /etc/profile')
+    bash_commands.append('FEATURES=\'-sandbox\' emerge %s' % ('net-fs/autofs'))
+    bash_command = ' && '.join(bash_commands)
+    command = base % (bash_command)
+    exec_with_chroot(command)
+    #emerge(' net-fs/autofs')
