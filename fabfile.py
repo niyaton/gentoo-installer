@@ -316,3 +316,13 @@ def setting_vagrant():
 
     with cd(env.chroot + '/etc/ssh'):
         put('files/sshd_config', 'sshd_config')
+
+
+def cleanup():
+    exec_with_chroot('eselect news read all')
+
+    #exec_with_chroot('rm /tmp/*')
+    run('rm %s/tmp/*' % (env.chroot))
+    run('rm -rf %s/var/log/*' % (env.chroot))
+    #exec_with_chroot('rm -rf /var/log/*')
+    exec_with_chroot('rm -rf /root/.gem')
