@@ -26,7 +26,8 @@ def get_latest_stage3(build_arch, build_proc):
     print("Latest stage3 file is here: %s" % (stage3_current_url))
     return stage3_current_url
 
-def download_latest_portage(url="http://ftp.jaist.ac.jp/pub/Linux/Gentoo/snapshots/portage-latest.tar.bz2"):
+def download_latest_portage():
+    url = "http://ftp.jaist.ac.jp/pub/Linux/Gentoo/snapshots/portage-latest.tar.bz2"
     portage_latest_path = "downloads/portage.tar.bz2"
 
     download_base_file(url, portage_latest_path, hashlib.md5)
