@@ -1,0 +1,25 @@
+#!/sbin/runscript
+
+VMWARE_TOOLS=/etc/rc.d/vmware-tools
+
+depend() {
+  after *
+}
+
+start() {
+  ebegin "Starting VMwareTools"
+  $VMWARE_TOOLS start
+  eend $?
+}
+
+stop() {
+  ebegin "Stopping WMWareTools"
+  $VMWARE_TOOLS stop
+  eend $?
+}
+
+restart(){
+  ebegin "Restarting VMWareTools"
+  $VMWARE_TOOLS restart
+  eend $?
+}

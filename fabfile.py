@@ -1,4 +1,4 @@
-from fabric.api import run, env, cd, put, reboot
+from fabric.api import run, env, cd, put, reboot, prefix, shell_env
 from contextlib import closing
 from fabric.contrib.files import upload_template
 from urllib2 import urlopen
@@ -76,9 +76,6 @@ def get_digest_from_url(base_url, digest_type):
             if name == file_name:
                 return digest
    
-def setting():
-    pass
-
 def make_file_systems():
     sgdisk_opts_format = '-n %(id)d:0:%(amount)s -t %(id)d:%(fid)s -c %(id)d:"%(name)s"'
     sgdisk_options = []
@@ -129,7 +126,6 @@ def prepare_chroot():
     run('cp /etc/resolv.conf "%s/etc/"' % (env.chroot))
     exec_with_chroot('env-update')
 
-
 def build_gentoo():
     make_file_systems()
     mount_file_systems()
@@ -148,6 +144,7 @@ def build_gentoo():
 
     kernel()
     setting_vagrant()
+    install_vmware_tools()
     install_ruby()
     install_chef()
     install_cron()
@@ -157,7 +154,6 @@ def build_gentoo():
     cleanup()
     zerodisk()
     #reboot()
-
 
 def setting_network():
     command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
@@ -190,6 +186,8 @@ def setting_portage():
     make_conf_file = 'files/make.conf'
     make_conf_env = get_make_conf_env()
     upload_template(make_conf_file, env.chroot + '/etc/portage/make.conf', make_conf_env, backup=False)
+    package_keywords = 'files/package.keywords'
+    put(package_keywords, env.chroot + '/etc/portage/package.keywords')
 
 def set_timezone():
     # timezone (as a subdirectory of /usr/share/zoneinfo)
@@ -222,9 +220,6 @@ def kernel():
     run('chroot "%s" %s' % (env.chroot, command))
 
 def grub():
-    package_keywords = 'files/package.keywords'
-    put(package_keywords, env.chroot + '/etc/portage/package.keywords')
-
     commands = []
     commands.append('/bin/bash -c "env-update && source /etc/profile && emerge grub"')
     commands.append('sed -i "s/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=1/g" /etc/default/grub')
@@ -249,13 +244,16 @@ def emerge(arg):
     bash_commands.append('emerge %s' % (arg))
     bash_command = ' && '.join(bash_commands)
 
-    #command = ' '.join((base, bash_command))
     command = base % (bash_command)
     exec_with_chroot(command)
 
 def install_ruby():
     emerge('--autounmask-write ruby:1.9')
     exec_with_chroot('eselect ruby set ruby19')
+
+def test_chroot():
+    with prefix('chroot %s' % (env.chroot)):
+        run('pwd')
 
 def install_chef():
     exec_with_chroot('gem install chef --no-rdoc --no-ri')
@@ -268,21 +266,34 @@ def install_cron():
     emerge('sys-process/vixie-cron')
     exec_with_chroot('rc-update add vixie-cron default')
 
-
 def install_nfs():
     emerge('net-fs/nfs-utils')
-    base = '/bin/bash -c "%s"'
-    bash_commands = []
-    bash_commands.append('env-update')
-    bash_commands.append('source /etc/profile')
-    bash_commands.append('FEATURES=\'-sandbox\' emerge %s' % ('net-fs/autofs'))
-    bash_command = ' && '.join(bash_commands)
-    command = base % (bash_command)
-    exec_with_chroot(command)
-    #emerge(' net-fs/autofs')
+    with shell_env(FEATURES='-sandbox'):
+        emerge('net-fs/autofs')
 
 def install_vmware_tools():
+    
     emerge('--autounmask-write app-emulation/vmware-tools')
+
+    with cd(env.chroot):
+        vmware_iso = 'opt/vmware/lib/vmware/isoimages/linux.iso'
+        mount_path = 'mnt/vmware-tools'
+        run('mkdir %s' % (mount_path))
+        run('mkdir etc/rc.d')
+        with cd('etc/rc.d'):
+            run('mkdir rc{0..6}.d')
+        run('mount -t iso9660 %s %s' % (vmware_iso, mount_path))
+        vm_tool_file = 'VMwareTools-*.tar.gz'
+        tmp_dir = 'tmp'
+        run('tar xzf %s -C %s' % ('/'.join((mount_path, vm_tool_file)), tmp_dir))
+        exec_command = '%s/vmware-tools-distrib/vmware-install.pl -d' % (tmp_dir)
+        command = '/bin/bash -c "env-update && source /etc/profile && %s"'
+        exec_with_chroot(command % (exec_command))
+        run('umount %s' % (mount_path))
+        put('files/vmware-tools', 'etc/init.d/vmware-tools')
+        run('chmod +x etc/init.d/vmware-tools')
+
+        exec_with_chroot('rc-update add vmware-tools default')
 
 def setting_vagrant():
     remote_env = dict()
@@ -331,10 +342,8 @@ def setting_vagrant():
 def cleanup():
     exec_with_chroot('eselect news read all')
 
-    #exec_with_chroot('rm /tmp/*')
     run('rm %s/tmp/*' % (env.chroot))
     run('rm -rf %s/var/log/*' % (env.chroot))
-    #exec_with_chroot('rm -rf /var/log/*')
     exec_with_chroot('rm -rf /root/.gem')
 
 def zerodisk():
@@ -347,4 +356,3 @@ def zerodisk():
     run('rm %s' % (empty_file_path))
     #reboot()
     run('reboot')
-
