@@ -140,7 +140,9 @@ def upload_stage3_and_portage():
     put(portage_path, env.chroot)
 
     return (stage3_path, portage_path)
-    
+
+def exec_with_chroot(command):
+    run('chroot "%s" %s' % (env.chroot, command))
 
 def base():
     make_file_systems()
@@ -164,7 +166,7 @@ def base():
         run('chroot "%s" env-update' % (env.chroot))
 
         command = 'ln -s /dev/null /etc/udev/rules.d/80-net-name-slot.rules'
-        run('chroot "%s" %s' % (env.chroot, command))
+        exec_with_chroot(command)
         
         chroot1()
         chroot2()
@@ -177,8 +179,7 @@ def chroot1():
     commands.append('ln -s net.lo /etc/init.d/net.eth0')
     commands.append('rc-update add net.eth0 default')
     commands.append('rc-update add sshd default')
-    for command in commands:
-        run('chroot "%s" %s' % (env.chroot, command))
+    map(exec_with_chroot, commands)
 
 def get_make_conf_env():
     make_conf_env = {}
@@ -213,9 +214,8 @@ def chroot3():
     #commands.append('/bin/bash -c "env-update && source /etc/profile && emerge-webrsync"')
     commands.append('/bin/bash -c "env-update && source /etc/profile && emerge --sync --quiet"')
     #commands.append('emerge-webrsync')
-
-    for command in commands:
-        run('chroot "%s" %s' % (env.chroot, command))
+    
+    map(exec_with_chroot, commands)
 
 def kernel():
     package_use_file = 'files/package.use'
@@ -246,8 +246,7 @@ def grub():
     commands.append('grub2-mkconfig -o /boot/grub2/grub.cfg')
     commands.append('grub2-install --no-floppy /dev/sda')
     
-    for command in commands:
-        run('chroot "%s" %s' % (env.chroot, command))
+    map(exec_with_chroot, commands)
 
 def test_mount():
     run('mount /dev/sda4 /mnt/gentoo')
