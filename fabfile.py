@@ -7,9 +7,6 @@ import hashlib
 # chroot directory for the installation
 env.chroot = "/mnt/gentoo"
 
-def hello():
-    print("Hello World!")
-
 def get_latest_stage3(build_arch, build_proc):
     # stage 3 filename and full url
     # retrieve from Gentoo current autobuild txt - these change regularly
